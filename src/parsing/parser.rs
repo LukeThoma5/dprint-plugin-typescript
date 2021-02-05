@@ -16,7 +16,7 @@ pub fn parse<'a>(source_file: &'a ParsedSourceFile, config: &Configuration) -> P
         module: &source_file.module,
         source_file: None,
         tokens: Some(&source_file.tokens),
-        comments: Some(&source_file.comments),
+        comments: None,
     };
 
     swc_ast_view::with_ast_view(source_file_info, |module| {
@@ -82,9 +82,9 @@ fn parse_node_with_inner_parse<'a>(node: Node<'a>, context: &mut Context<'a>, in
                 .collect::<Vec<&'a Comment>>();
             items.extend(parse_comment_collection(leading_comments_on_previous_lines.into_iter(), None, None, context));
         } else {
-            let leading_comments = context.comments.leading_comments_with_previous(node_lo);
-            has_ignore_comment = get_has_ignore_comment(&leading_comments, &node, context);
-            items.extend(parse_comments_as_leading(&node_span, leading_comments, context));
+            // let leading_comments = context.comments.leading_comments_with_previous(node_lo);
+            // has_ignore_comment = get_has_ignore_comment(&leading_comments, &node, context);
+            // items.extend(parse_comments_as_leading(&node_span, leading_comments, context));
         }
     }
 
@@ -94,21 +94,21 @@ fn parse_node_with_inner_parse<'a>(node: Node<'a>, context: &mut Context<'a>, in
         items.extend(inner_parse(parser_helpers::parse_raw_string(node.text_fast(context.module)), context));
 
         // mark any previous comments as handled
-        for comment in context.comments.trailing_comments_with_previous(node_hi) {
-            if comment.lo() < node_hi {
-                context.mark_comment_handled(comment);
-            }
-        }
+        // for comment in context.comments.trailing_comments_with_previous(node_hi) {
+        //     if comment.lo() < node_hi {
+        //         context.mark_comment_handled(comment);
+        //     }
+        // }
     } else {
         items.extend(inner_parse(parse_node_inner(node, context), context));
     }
 
     // Get the trailing comments -- This needs to be done based on the parse
     // stack order because certain nodes like binary expressions are flattened
-    if node_hi != parent_hi || context.parent().kind() == NodeKind::Module {
-        let trailing_comments = context.comments.trailing_comments_with_previous(node_hi);
-        items.extend(parse_comments_as_trailing(&node_span, trailing_comments, context));
-    }
+    // if node_hi != parent_hi || context.parent().kind() == NodeKind::Module {
+        // let trailing_comments = context.comments.trailing_comments_with_previous(node_hi);
+        // items.extend(parse_comments_as_trailing(&node_span, trailing_comments, context));
+    // }
 
     let items = if let Some(info) = context.take_current_before_comments_start_info() {
         let mut new_items = PrintItems::new();

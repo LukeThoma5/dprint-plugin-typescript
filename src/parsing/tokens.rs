@@ -36,7 +36,8 @@ impl<'a> TokenFinder<'a> {
     }
 
     pub fn get_previous_token_if_from_keyword(&self, node: &dyn Spanned) -> Option<&'a TokenAndSpan> {
-        self.get_previous_token_if(node, |token| token.text_fast(self.module) == "from")
+        self.get_previous_token_if(node, |token| token
+            .text_fast(self.module) == "from")
     }
 
     pub fn get_previous_token_if_colon(&self, node: &dyn Spanned) -> Option<&'a TokenAndSpan> {
