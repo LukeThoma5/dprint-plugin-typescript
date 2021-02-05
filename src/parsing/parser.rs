@@ -14,7 +14,7 @@ use super::*;
 pub fn parse<'a>(source_file: &'a ParsedSourceFile, config: &Configuration) -> PrintItems {
     let source_file_info = swc_ast_view::SourceFileInfo {
         module: &source_file.module,
-        source_file: Some(&source_file.info),
+        source_file: None,
         tokens: Some(&source_file.tokens),
         comments: Some(&source_file.comments),
     };
@@ -25,7 +25,6 @@ pub fn parse<'a>(source_file: &'a ParsedSourceFile, config: &Configuration) -> P
             config,
             &source_file.tokens,
             module_node,
-            &source_file.info,
             module,
         );
         let mut items = parse_node(module_node, &mut context);

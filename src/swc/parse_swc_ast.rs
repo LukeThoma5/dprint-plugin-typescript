@@ -3,11 +3,12 @@ use swc_common::{
     errors::{Handler, Emitter, DiagnosticBuilder},
     FileName, comments::SingleThreadedComments, SourceFile, BytePos
 };
-use swc_ecmascript::parser::{Parser, StringInput, Syntax, lexer::Lexer, Capturing, JscTarget, token::{TokenAndSpan}};
+use swc_ecmascript::parser::{Parser, StringInput, Syntax, lexer::Lexer, Capturing, JscTarget, token::{TokenAndSpan}, Tokens};
+use swc_common::input::Input;
 
 pub struct ParsedSourceFile {
     pub module: swc_ecmascript::ast::Module,
-    pub info: SourceFile,
+    // pub info: SourceFile,
     pub tokens: Vec<TokenAndSpan>,
     pub comments: SingleThreadedComments,
 }
@@ -73,7 +74,7 @@ fn parse_inner(file_path: &Path, file_text: &str) -> Result<ParsedSourceFile, St
     return Ok(ParsedSourceFile {
         comments,
         module,
-        info: source_file,
+        // info: source_file,
         tokens,
     });
 
@@ -83,6 +84,54 @@ fn parse_inner(file_path: &Path, file_text: &str) -> Result<ParsedSourceFile, St
         }
         return true;
     }
+}
+
+pub fn parse_from_input(input: impl Tokens) -> Result<ParsedSourceFile, String> {
+    let handler = Handler::with_emitter(false, false, Box::new(EmptyEmitter {}));
+
+    // let source_file = SourceFile::new(
+    //     FileName::Custom(file_path.to_string_lossy().into()),
+    //     false,
+    //     FileName::Custom(file_path.to_string_lossy().into()),
+    //     file_text.into(),
+    //     BytePos(0),
+    // );
+
+    let comments: SingleThreadedComments = Default::default();
+    let (module, tokens) = {
+        // let mut ts_config: swc_ecmascript::parser::TsConfig = Default::default();
+        // ts_config.tsx = false;
+        // ts_config.dynamic_import = true;
+        // ts_config.decorators = true;
+        // let lexer = Lexer::new(
+        //     Syntax::Typescript(ts_config),
+        //     JscTarget::Es2019,
+        //     StringInput::from(&source_file),
+        //     Some(&comments)
+        // );
+        // let lexer = Capturing::new(lexer);
+        let mut parser = Parser::new_from(Capturing::new(input));
+        let parse_module_result = parser.parse_module();
+        let tokens = parser.input().take();
+
+        match parse_module_result {
+            Err(error) => {
+                // mark the diagnostic as being handled (otherwise it will panic in its drop)
+                let mut diagnostic = error.into_diagnostic(&handler);
+                diagnostic.cancel();
+                // return the formatted diagnostic string
+                Err(format_diagnostic(&diagnostic, ""))
+            },
+            Ok(module) => Ok((module, tokens))
+        }
+    }?;
+
+    return Ok(ParsedSourceFile {
+        comments,
+        module,
+        // info: source_file,
+        tokens,
+    });
 }
 
 fn get_lowercase_extension(file_path: &Path) -> Option<String> {

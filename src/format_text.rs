@@ -6,7 +6,8 @@ use dprint_core::configuration::{resolve_new_line_kind};
 use super::parsing::parse;
 use super::swc::parse_swc_ast;
 use super::configuration::Configuration;
-
+use swc_common::input::Input;
+use swc_ecmascript::parser::{Tokens};
 /// Formats a file.
 ///
 /// Returns the file text `Ok(formatted_text)` or an error when it failed to parse.
@@ -62,4 +63,18 @@ pub fn format_text(file_path: &Path, file_text: &str, config: &Configuration) ->
         iterator.skip_whitespace();
         iterator.check_text(&config.ignore_file_comment_text)
     }
+}
+
+pub fn format_from_input(input: impl Tokens, config: &Configuration) -> Result<String, String> {
+    let parsed_source_file = super::swc::parse_from_input(input)?;
+    let print_items = parse(&parsed_source_file, config);
+
+    // println!("{}", print_items.get_as_text());
+
+    return Ok(print(print_items, PrintOptions {
+        indent_width: config.indent_width,
+        max_width: config.line_width,
+        use_tabs: config.use_tabs,
+        new_line_text: "\n",
+    }));
 }

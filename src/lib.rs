@@ -7,6 +7,7 @@ mod swc;
 mod utils;
 
 pub use format_text::format_text;
+pub use format_text::format_from_input;
 
 #[cfg(feature = "wasm")]
 #[cfg(all(target_arch = "wasm32", target_os = "unknown"))]
