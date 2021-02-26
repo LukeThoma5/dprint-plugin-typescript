@@ -1,11 +1,12 @@
 use std::path::Path;
 
+use dprint_core::configuration::resolve_new_line_kind;
 use dprint_core::formatting::*;
-use dprint_core::configuration::{resolve_new_line_kind};
+use swc_ast_view::BytePos;
 
-use super::parsing::parse;
-use super::swc::parse_swc_ast;
 use super::configuration::Configuration;
+use super::parsing::parse;
+use super::swc::{parse_from_source_file, parse_swc_ast};
 
 /// Formats a file.
 ///
@@ -34,20 +35,52 @@ use super::configuration::Configuration;
 ///     // save result here...
 /// }
 /// ```
-pub fn format_text(file_path: &Path, file_text: &str, config: &Configuration) -> Result<String, String> {
+pub fn format_text(
+    file_path: &Path,
+    file_text: &str,
+    config: &Configuration,
+) -> Result<String, String> {
     if super::utils::file_text_has_ignore_comment(file_text, &config.ignore_file_comment_text) {
         return Ok(String::from(file_text));
     }
 
     let parsed_source_file = parse_swc_ast(file_path, file_text)?;
-    return Ok(dprint_core::formatting::format(|| {
-        let print_items = parse(&parsed_source_file, config);
-        // println!("{}", print_items.get_as_text());
-        print_items
-    }, PrintOptions {
-        indent_width: config.indent_width,
-        max_width: config.line_width,
-        use_tabs: config.use_tabs,
-        new_line_text: resolve_new_line_kind(file_text, config.new_line_kind),
-    }));
+    return Ok(dprint_core::formatting::format(
+        || {
+            let print_items = parse(&parsed_source_file, config);
+            // println!("{}", print_items.get_as_text());
+            print_items
+        },
+        PrintOptions {
+            indent_width: config.indent_width,
+            max_width: config.line_width,
+            use_tabs: config.use_tabs,
+            new_line_text: resolve_new_line_kind(file_text, config.new_line_kind),
+        },
+    ));
+}
+
+pub fn format_string(file_text: &str, config: &Configuration) -> Result<String, String> {
+    let source_file = swc_common::SourceFile::new(
+        swc_common::FileName::Anon,
+        false,
+        swc_common::FileName::Anon,
+        file_text.to_owned(),
+        BytePos(0),
+    );
+
+    let parsed_source_file = parse_from_source_file(source_file, file_text)?;
+    return Ok(dprint_core::formatting::format(
+        || {
+            let print_items = parse(&parsed_source_file, config);
+            // println!("{}", print_items.get_as_text());
+            print_items
+        },
+        PrintOptions {
+            indent_width: config.indent_width,
+            max_width: config.line_width,
+            use_tabs: config.use_tabs,
+            new_line_text: "\n",
+        },
+    ));
 }
